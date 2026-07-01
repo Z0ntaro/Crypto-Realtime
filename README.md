@@ -18,10 +18,10 @@ Designed and developed by **Arghyadeep Paul** (*Associate Technical Consultant �
 
 ---
 
-> [!IMPORTANT]
-> 🛠️ **Status: Active Creation Stage (Open for Collaboration!)**
->
-> This solution accelerator is currently in an open-source **creation/templating stage**. While the central Real-Time Dashboard and Eventstream definitions are fully configured, the companion ingestion modules are active templates. We need help expanding features! Check out the [Contributing](#-contributing--open-source-help-needed) section below.
+> [!NOTE]
+> 🏆 **Project Status: Complete & Verified**
+> 
+> This project is a **fully functional, end-to-end streaming solution**. Since Microsoft Fabric Eventhouse and Eventstream definitions cannot be exported directly as downloadable code files, the streaming ingestion has been validated using a Python producer script executed within a **Google Colab Notebook**. The producer pushes live mock ticker feeds continuously to the Eventstream endpoint using **Shared Access Signature (SAS) Primary Key** authentication, populating the KQL database and dashboard in real-time.
 
 ---
 
@@ -31,7 +31,7 @@ The data streaming pipeline is structured as follows:
 
 ```mermaid
 graph LR
-    Binance[Binance API / Ticker Feed] -->|Python Streaming Producer| Hub[Azure Event Hubs / Fabric Custom Endpoint]
+    Colab[Google Colab Notebook / Python Producer] -->|SAS Key Authentication| Hub[Azure Event Hubs / Fabric Custom Endpoint]
     Hub -->|Fabric Eventstream| DB[(Eventhouse / KQL Database)]
     DB -->|Real-Time KQL Queries| Dashboard[Fabric Real-Time Dashboard]
 
@@ -40,93 +40,76 @@ graph LR
     style Dashboard fill:#cfc,stroke:#333,stroke-width:2px
 ```
 
-*   **Ingestion Feed**: A Python script runs in the background, polling ticker data from the Binance API and pushing it to a streaming destination.
-*   **Orchestration & Routing**: Fabric Eventstream acts as the ingestion broker, routing streaming events with zero-code transformation directly into table structures.
-*   **Storage & Querying**: Fabric Eventhouse (KQL Database) hosts the columns in a highly indexed, compressed column store designed for high-throughput temporal data.
-*   **Presentation**: Fabric Real-Time Dashboard refreshes automatically to surface price trends, standard deviations (market volatility), and rolling trading volumes.
+*   **Ingestion Feed**: A Python script runs continuously inside a Google Colab notebook, generating and sending ticker data.
+*   **Authentication & Security**: The client connects securely using the Eventstream Custom App endpoint via **Shared Access Signature (SAS)** primary credentials.
+*   **Orchestration & Routing**: Fabric Eventstream acts as the ingestion broker, routing streaming events with zero-code transformation directly into KQL tables.
+*   **Storage & Querying**: Fabric Eventhouse (KQL Database) hosts the data in a highly indexed temporal column store.
+*   **Presentation**: Fabric Real-Time Dashboard fetches and displays data in real-time.
 
 ---
 
-## 🐍 2. Python Streaming Producer Code
+## 🐍 2. Google Colab Streaming Ingestion Client
 
-To stream real-time price feeds into your Azure Event Hub or Fabric Eventstream Custom Endpoint, use this Python producer script template.
-
-### Installation
-
-First, install the required libraries:
-```bash
-pip install requests azure-eventhub
-```
-
-### Python Script (`producer.py`)
-
-Save the following code as `producer.py` and configure the connection string:
+The following Python script was executed in Google Colab to establish a persistent streaming connection to the Eventstream Custom App endpoint:
 
 ```python
 import json
 import time
+import random
 import requests
 from azure.eventhub import EventHubProducerClient, EventData
 
-# --- CONFIGURATION ---
-# Replace with your Fabric Eventstream Event Hub Connection String
-CONNECTION_STR = "Endpoint=sb://<your-namespace>.servicebus.windows.net/;SharedAccessKeyName=<key-name>;SharedAccessKey=<key>"
+# --- SECURITY CONFIGURATION ---
+# Connection string retrieved from the Fabric Eventstream Custom App Endpoint
+CONNECTION_STR = "Endpoint=sb://<your-eventstream-namespace>.servicebus.windows.net/;SharedAccessKeyName=<key-name>;SharedAccessKey=<sas-primary-key>"
 EVENTHUB_NAME = "crypto-stream"
-SYMBOL = "BTCUSDT"  # Target trading pair
 
-def get_binance_ticker(symbol):
+def generate_mock_ticker(symbol="BTCUSDT"):
     """
-    Fetches the current price and volume metrics from the Binance Spot API.
+    Generates a continuous mock ticker feed for testing low-latency ingestion.
     """
-    url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}"
-    try:
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        return {
-            "symbol": data["symbol"],
-            "price": float(data["price"]),
-            "timestamp": int(time.time() * 1000) # Epoch milliseconds
-        }
-    except Exception as e:
-        print(f"Error fetching data from Binance: {e}")
-        return None
+    return {
+        "symbol": symbol,
+        "price": round(random.uniform(60000, 65000), 2),
+        "timestamp": int(time.time() * 1000)
+    }
 
-def stream_ticker_feed():
-    """
-    Streams live ticker metrics to Azure Event Hub / Fabric Eventstream.
-    """
-    print(f"Connecting to Event Hub: {EVENTHUB_NAME}...")
+def start_colab_stream():
     producer = EventHubProducerClient.from_connection_string(
         conn_str=CONNECTION_STR, 
         eventhub_name=EVENTHUB_NAME
     )
-    print(f"Streaming started for {SYMBOL}. Press Ctrl+C to exit.")
+    print(f"✅ Ingestion client authenticated via SAS Key. Streaming live ticks to Eventstream...")
     
     try:
         while True:
-            ticker = get_binance_ticker(SYMBOL)
-            if ticker:
-                # Package and send payload batch
-                batch = producer.create_batch()
-                batch.add(EventData(json.dumps(ticker)))
-                producer.send_batch(batch)
-                print(f"Successfully Sent event: {ticker}")
-            time.sleep(2)  # Ingest ticker data every 2 seconds
-            
+            ticker = generate_mock_ticker()
+            batch = producer.create_batch()
+            batch.add(EventData(json.dumps(ticker)))
+            producer.send_batch(batch)
+            print(f"🚀 Sent to Fabric: {ticker}")
+            time.sleep(1) # Send 1 tick per second
     except KeyboardInterrupt:
-        print("\nStopping streaming feed...")
+        print("Stream stopped.")
     finally:
         producer.close()
-        print("Event Hub Producer closed.")
 
-if __name__ == "__main__":
-    stream_ticker_feed()
+start_colab_stream()
 ```
 
 ---
 
-## 🔍 3. Real-Time KQL Queries
+## 📊 3. Eventstream Routing & Ingestion Verification
+
+When the Colab ingestion client runs, Fabric Eventstream continuously fetches the ticker records. You can verify that data is populating the endpoint by looking at the Eventstream data preview panel:
+
+![Eventstream Ingestion & Routing Preview](Screenshot%202026-07-01%20172911.png)
+
+*The connection routes the incoming streams directly to the `crypto_events` table inside the KQL Database.*
+
+---
+
+## 🔍 4. Real-Time KQL Queries
 
 KQL (Kusto Query Language) is used to perform low-latency aggregation inside the KQL Database. Below are the key queries used to build the real-time analytics dashboard:
 
@@ -166,7 +149,29 @@ crypto_events
 
 ---
 
-## 🛠️ 4. How to Deploy the Platform
+## 🖥️ 5. Real-Time Observability Dashboard Visualizations
+
+Once the data is flowing, the Fabric Real-Time Dashboard displays live, autoupdating charts.
+
+### Main Ticker Trends
+Displays live price timelines and moving averages for the streaming currency pair:
+![Dashboard Main Ticker Trends](Screenshot%202026-07-01%20172731.png)
+
+### Volatility and Standard Deviations
+Calculates standard deviations to alert on market spread:
+![Dashboard Volatility Index](Screenshot%202026-07-01%20172812.png)
+
+### Ingestion Throughput Statistics
+Displays the frequency and tick count of records being pulled from the Colab notebook:
+![Dashboard Ingestion Rate Ticks](Screenshot%202026-07-01%20172829.png)
+
+### Dashboard UI and KQL Editor Settings
+Configuration panel showing the underlying KQL query logic of the dashboard components:
+![Dashboard UI Configuration](Screenshot%202026-07-01%20172900.png)
+
+---
+
+## 🛠️ 6. How to Deploy the Platform
 
 Follow these steps to configure the real-time platform in your Microsoft Fabric environment:
 
@@ -194,10 +199,10 @@ Follow these steps to configure the real-time platform in your Microsoft Fabric 
    * Select your workspace, Eventhouse, KQL Database, and the `crypto_events` table.
    * Map the JSON schema keys directly to the table columns.
 
-### Step 4: Run the Streaming Producer
-1. Open a terminal on your computer.
-2. Run the `producer.py` Python script (configured with the Eventstream connection parameters from Step 3).
-3. Confirm that the data is successfully sent to Fabric.
+### Step 4: Run the Ingestion Script
+1. Set up a Python environment (either locally or in a Google Colab notebook).
+2. Configure the Event Hub connection string in the script (`CONNECTION_STR`).
+3. Run the script to start pushing live mock feeds continuously to Fabric.
 
 ### Step 5: Import the Dashboard
 1. On the workspace home page, click **Real-Time Dashboard** $\rightarrow$ select **New Real-Time Dashboard**.
@@ -208,24 +213,7 @@ Follow these steps to configure the real-time platform in your Microsoft Fabric 
 
 ---
 
-## 🤝 5. Contributing & Open-Source Help Needed!
-
-This accelerator is open-source and **currently in development**. We invite contributions from the developer community to help bring this solution to full production capabilities!
-
-### 💡 Up-For-Grabs Features:
-*   [ ] **Multicast Streams**: Extend `producer.py` to stream multiple cryptocurrency pairs simultaneously (e.g. ETH, SOL, ADA).
-*   [ ] **API Integrations**: Add connectors for other exchange APIs (Coinbase WebSocket, Kraken REST).
-*   [ ] **Containerization**: Create a Dockerfile to run `producer.py` as a serverless container on ECS or ACI.
-*   [ ] **KQL Alerting Library**: Design a database query alert script that triggers a Fabric Reflex event when standard deviation exceeds a user-defined threshold (volatility alerts).
-
-**How to contribute**:
-1. Fork the repo and clone locally.
-2. Code your feature, add test results, and update the directory index.
-3. Open a Pull Request detailing your solution!
-
----
-
-## 📂 6. Project Directory Structure
+## 📂 7. Project Directory Structure
 
 ```
 ├── Crypto Realtime/
@@ -242,6 +230,6 @@ This accelerator is open-source and **currently in development**. We invite cont
 
 ---
 
-## 📄 7. License
+## 📄 8. License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
