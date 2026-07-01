@@ -1,4 +1,11 @@
-# Real-Time Cryptocurrency Analytics Platform
+# 🪙 Real-Time Cryptocurrency Analytics Platform
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/Z0ntaro/Crypto-Realtime?style=social" alt="GitHub Stars"/>
+  <img src="https://img.shields.io/github/forks/Z0ntaro/Crypto-Realtime?style=social" alt="GitHub Forks"/>
+  <img src="https://img.shields.io/github/issues/Z0ntaro/Crypto-Realtime" alt="GitHub Issues"/>
+  <img src="https://img.shields.io/github/license/Z0ntaro/Crypto-Realtime" alt="License"/>
+</p>
 
 [![Microsoft Fabric](https://img.shields.io/badge/Microsoft%20Fabric%20RTI-0078D4?style=for-the-badge&logo=microsoft&logoColor=white)](https://azure.microsoft.com/en-us/products/microsoft-fabric/)
 [![KQL](https://img.shields.io/badge/KQL%20-%20Kusto%20Query%20Language-4F2F4F?style=for-the-badge&logo=microsoft&logoColor=white)](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/)
@@ -11,7 +18,14 @@ Designed and developed by **Arghyadeep Paul** (*Associate Technical Consultant �
 
 ---
 
-## 1. Architecture Flow
+> [!IMPORTANT]
+> 🛠️ **Status: Active Creation Stage (Open for Collaboration!)**
+>
+> This solution accelerator is currently in an open-source **creation/templating stage**. While the central Real-Time Dashboard and Eventstream definitions are fully configured, the companion ingestion modules are active templates. We need help expanding features! Check out the [Contributing](#-contributing--open-source-help-needed) section below.
+
+---
+
+## 🏗️ 1. Architecture Flow
 
 The data streaming pipeline is structured as follows:
 
@@ -33,9 +47,9 @@ graph LR
 
 ---
 
-## 2. Python Streaming Producer Code
+## 🐍 2. Python Streaming Producer Code
 
-To stream real-time price feeds into your Azure Event Hub or Fabric Eventstream Custom Endpoint, use this production-ready Python producer script.
+To stream real-time price feeds into your Azure Event Hub or Fabric Eventstream Custom Endpoint, use this Python producer script template.
 
 ### Installation
 
@@ -112,7 +126,7 @@ if __name__ == "__main__":
 
 ---
 
-## 3. Real-Time KQL Queries
+## 🔍 3. Real-Time KQL Queries
 
 KQL (Kusto Query Language) is used to perform low-latency aggregation inside the KQL Database. Below are the key queries used to build the real-time analytics dashboard:
 
@@ -152,7 +166,7 @@ crypto_events
 
 ---
 
-## 4. How to Deploy the Platform
+## 🛠️ 4. How to Deploy the Platform
 
 Follow these steps to configure the real-time platform in your Microsoft Fabric environment:
 
@@ -194,10 +208,28 @@ Follow these steps to configure the real-time platform in your Microsoft Fabric 
 
 ---
 
-## 5. Project Directory Structure
+## 🤝 5. Contributing & Open-Source Help Needed!
+
+This accelerator is open-source and **currently in development**. We invite contributions from the developer community to help bring this solution to full production capabilities!
+
+### 💡 Up-For-Grabs Features:
+*   [ ] **Multicast Streams**: Extend `producer.py` to stream multiple cryptocurrency pairs simultaneously (e.g. ETH, SOL, ADA).
+*   [ ] **API Integrations**: Add connectors for other exchange APIs (Coinbase WebSocket, Kraken REST).
+*   [ ] **Containerization**: Create a Dockerfile to run `producer.py` as a serverless container on ECS or ACI.
+*   [ ] **KQL Alerting Library**: Design a database query alert script that triggers a Fabric Reflex event when standard deviation exceeds a user-defined threshold (volatility alerts).
+
+**How to contribute**:
+1. Fork the repo and clone locally.
+2. Code your feature, add test results, and update the directory index.
+3. Open a Pull Request detailing your solution!
+
+---
+
+## 📂 6. Project Directory Structure
 
 ```
 ├── Crypto Realtime/
+│   ├── producer.py                       # Standalone Python streaming producer template
 │   ├── dashboard-Crypto Dashboard.json   # Exported Fabric Real-Time Dashboard definition
 │   ├── Screenshot 2026-07-01 172731.png  # Dashboard Preview: Main Ticker Trends
 │   ├── Screenshot 2026-07-01 172812.png  # Dashboard Preview: Volatility calculations
@@ -210,6 +242,6 @@ Follow these steps to configure the real-time platform in your Microsoft Fabric 
 
 ---
 
-## 6. License
+## 📄 7. License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
